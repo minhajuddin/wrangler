@@ -24,6 +24,11 @@
 
 defmodule SimpleWire do
   @version 3
+  @types %{
+    0 => :heartbeat,
+    1 => :request,
+    2 => :response
+  }
 
   def build_frame(:heartbeat) do
     build(:heartbeat, <<>>)
@@ -38,14 +43,20 @@ defmodule SimpleWire do
   end
 
   defp build(type, payload) do
-    [@version, type(type), byte_size(payload), payload]
+    [@version, build_type(type), <<byte_size(payload)::size(32)>>, payload]
   end
 
-  def parse_frame(<<3, 0, 0>>) do
-    %{type: :heartbeat, version: @version, payload: nil, length: 0}
+  def parse_frame(
+        <<@version::size(8), wire_type::size(8), length::size(32), payload::binary-size(length)>>
+      ) do
+    {:ok, %{type: parse_type(wire_type), version: @version, payload: payload, length: length}}
   end
 
-  defp type(:heartbeat), do: 0
-  defp type(:request), do: 1
-  defp type(:response), do: 2
+  for {wire_type, type} <- @types do
+    defp build_type(unquote(type)), do: unquote(wire_type)
+  end
+
+  for {wire_type, type} <- @types do
+    defp parse_type(unquote(wire_type)), do: unquote(type)
+  end
 end
