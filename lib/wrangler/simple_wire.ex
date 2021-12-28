@@ -1,11 +1,11 @@
 # SimpleWire is a simple, and fast, wire protocol to transport binary data.
 
 #   Wire format
-#   +------+------+-------------------+--------------------------------------+
-#   |  V   |   T  |    length         |        payload                       |
-#   +------+------+-------------------+--------------------------------------+
-#   |  1   |  1   |      4            |        length bytes                  |
-#   +------+------+-------------------+--------------------------------------+
+#   +-------------------+------+------+--------------------------------------+
+#   |    length         |  V   |   T  |        payload                       |
+#   +-------------------+------+------+--------------------------------------+
+#   |      4            |  1   |  1   |        length-2 bytes                |
+#   +-------------------+------+------+--------------------------------------+
 #
 #   V       | version           | unsigned byte
 #   T       | type              | unsigned byte
@@ -43,13 +43,12 @@ defmodule SimpleWire do
   end
 
   defp build(type, payload) do
-    [@version, build_type(type), <<byte_size(payload)::size(32)>>, payload]
+    packet_size = byte_size(payload) + 2
+    [<<packet_size::size(32)>>, @version, build_type(type), payload]
   end
 
-  def parse_frame(
-        <<@version::size(8), wire_type::size(8), length::size(32), payload::binary-size(length)>>
-      ) do
-    {:ok, %{type: parse_type(wire_type), version: @version, payload: payload, length: length}}
+  def parse_frame(<<@version::unsigned-size(8), wire_type::unsigned-size(8), payload::binary>>) do
+    {:ok, %{type: parse_type(wire_type), version: @version, payload: payload}}
   end
 
   for {wire_type, type} <- @types do
