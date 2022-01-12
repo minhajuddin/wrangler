@@ -19,11 +19,11 @@ defmodule TCPSpeedTest do
     end
 
     defp serve_sock(sock, conn_id, rx_bytes) do
-      # Logger.info log_code: "RX_BYTES", rx_bytes: rx_bytes, conn_id: conn_id
       case :gen_tcp.recv(sock, 0, 1000) do
         {:ok, data} ->
           serve_sock(sock, conn_id, rx_bytes + byte_size(data))
         {:error, :timeout} ->
+          Logger.info log_code: "RX_BYTES", rx_bytes: rx_bytes, conn_id: conn_id
           serve_sock(sock, conn_id, rx_bytes)
         {:error, err} ->
           Logger.error log_code: "sock.error", rx_bytes: rx_bytes, conn_id: conn_id, error: err
